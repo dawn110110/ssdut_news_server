@@ -1,0 +1,5 @@
+#1. 日志改用logging重写
+#2. pep8
+3. 对客户端接口改良(json/xml),news object
+4. 解析逻辑进一步分离，加上定时任务，另一个进程
+5. 加入plugin机制
