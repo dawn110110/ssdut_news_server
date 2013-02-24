@@ -64,6 +64,8 @@ import tornado.httpserver
 import tornado.httpclient
 import tornado.options
 import logging
+import db
+from hashlib import sha1
 
 #from tornado.options import define, options
 
@@ -80,6 +82,16 @@ SSDUT_SITE = "http://ssdut.dlut.edu.cn"
 
 class BaseHandler(tornado.web.RequestHandler):
     '''Base handler. contain the api of database. '''
+
+    @property
+    def backend(self):
+        ''' return the sqlalchemy backend object defined in db.py'''
+        return db.Backend.instance()
+
+    @property
+    def db_ses(self):
+        ''' return the sqlalchemy daatabase session '''
+        return self.backend.get_session()
 
     DATABASE_FILE = 'ssdutNews.db'
     # os.environ['LOCALAPPDATA']+'\\ssdutNews.db'
@@ -113,82 +125,80 @@ class BaseHandler(tornado.web.RequestHandler):
         else:
             raise AttributeError(attrname)
 
-    def store_news(self, no, title, link, date, author, isread=0):
+    def store_news(self, no, title, link, date, author, isread=0, body=''):
         '''This method is used to store news into database.
-
-        Every entry in the database has five value. They are:
-            no                 integer
-            title              string
-            link               string
-            date               string
-            author             string
-            isread             integer  (0 for no read, 1 for readed)
-        The value 'no' need user to assign. It indicates how fresh a news is.
-        The 'no' is bigger, the news is newer.
+        for schema, see db.py
+        no should be assigned by the author
         '''
-        cur = self.db.cursor()
-        cur.execute('''INSERT INTO news (no, title, link, date, author, isread)
-                                 VALUES (%d, "%s", "%s", "%s",  "%s", %d)
-                ''' % (no, title, link, date, author, isread))
-        self.db.commit()
-        cur.close()
+        # sqlalchemy Version
+        id = no  # TODO method vars , use id  not no
+
+        hashed = sha1([title, link, date, author, body]).hexdigest()
+        self.db_ses.begin()  # transaction
+        self.db_ses.execute(
+            "INSERT INTO news VALUES \
+                    (:id,:title,:link,:body,:date,:author,:sha1)",
+            {
+                "id": id,
+                "title": title,
+                "link": link,
+                "body": body,
+                "date": date,
+                "author": author,
+                "sha1": hashed,
+            })
+        self.db_ses.commit()
 
     def query_news(self, oldest=0, latest=0):
         ''' Query news which in the date interval (oldest, latest).
 
         It will return result as a list like:
             [
-            {"no":no, "title":title, "link":link, "date":date,
-            "author":author, "isread":isread},
+            {"id":id, "title":title, "link":link, "date":date,
+            "author":author, "sha1": hased_value},
             news2,
             news3,
             ...,
             ]
         '''
+        ses = self.db_ses
+        ses.begin()
 
-        cur = self.db.cursor()
         if latest == 0:
-            cur.execute('''SELECT * FROM news WHERE no > %d ORDER BY no DESC
-                    ''' % oldest)
+            res = ses.execute(
+                "SELECT * FROM news WHERE id > ? ORDER BY id DESC",
+                oldest)
         elif oldest == 0:
-            cur.execute('''SELECT * FROM news WHERE no < %d ORDER BY no DESC
-                    ''' % latest)
+            res = ses.execute(
+                "SELECT * FROM news WHERE id < ? ORDER BY id DESC",
+                latest)
         else:
-            cur.execute('''SELECT * FROM news WHERE no > %d AND no < %d ORDER
-                    BY no DESC ''' % (oldest, latest))
+            res = ses.execute(
+                "SELECT * FROM news WHERE id > ? AND id <? ORDER BY id DESC",
+                oldest, latest)
+        ses.commit()
 
-        result = []
-        for entry in cur:
-            d = {}
-            d["no"] = entry[0]
-            d["title"] = entry[1]
-            d["link"] = entry[2]
-            d["date"] = entry[3]
-            d["author"] = entry[4]
-            d["isread"] = entry[5]
-            result.append(d)
-        cur.close()
+        result = [dict(r) for r in res]  # convert into dict
         return result
 
     def get_news_seq(self):
-        cur = self.db.cursor()
-        cur.execute('''SELECT no FROM news ORDER BY no DESC''')
-        ret = [x[0] for x in cur.fetchall()]
-        cur.close()
-        return ret
+        res = self.db_ses.execute(
+            "SELECT id FROM news ORDER BY id DESC")
+        return list(res)
 
     def mark_readed(self, news_no):
+        return None
+
+        # TODO this will be no use
         cur = self.db.cursor()
         cur.execute('''UPDATE news SET isread=1 WHERE no=%d''' % news_no)
         self.db.commit()
         cur.close()
 
     def query(self, num):
-        cur = self.db.cursor()
-        cur.execute('''SELECT * FROM news WHERE no=%d''' % num)
-        ret = cur.fetchone()
-        cur.close()
-        return ret
+        res = self.db_ses.execute(
+            "SELECT * FROM news WHERE id=?", num).first()
+        return dict(res)
 
 
 class CloseHandler(BaseHandler):
