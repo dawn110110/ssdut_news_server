@@ -1,57 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Introduction:
-#
-# This is an application used to get latest news of the Software
-# School, Dalian University of Technology. It is one of the components of a
-# windows gadget which named SSdut News. It use to update news in the
-# background. This application use Tornado as its basic framework, which is
-# one of Facebook open source technologies.
-#
-# Liscense:
-#
-#  Copyright 2012 Feng Yuyao
-#
-#  Licensed under the Apache License, Version 2.0 (the "License");
-#  you may not use this file except in compliance with the License.
-#  You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS,
-#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  See the License for the specific language governing permissions and
-#  limitations under the License
-#
-# Usage:
-#
-# This application is running in the background. so we haven't any GUI
-# or command user interface to control this program. The user interface
-# of this program is the url like http://localhost:port/[param]. We post/get
-# http request to these url to control this server. The param's optional
-# value is shown as follows(dont't type [] which is indicate a parameter):
-#
-#    get-oldest=[oldest_news]-latest=[latest_news]-t=[random]
-#                         ---- HTTP GET. Use to get the news which's No in
-#                              (oldest_news,latest_news], random is a random
-#                              number use to prevent the brower's cache. In
-#                              this case, if oldest_news is zero, it
-#                              indicate to query all news older than latest.
-#                              if latest_news is zero, it indicate to query
-#                              all news newer than oldest.
-#    close                ---- HTTP POST. Close this application and release
-#                              the resource.
-#    update               ---- HTTP POST. Update news from ssdut website, it
-#                              will fix the discontinuous part in database
-#                              and check newest news every time.
-#    mark[mark]           ---- HTTP POST. Mark the news which's No is 'mark'
-#                              to readed
-#    getcontent/[no]      ---- HTTP GET. Get the content of the news which's
-#                              no is 'no' And this application will post news
-#                              to you in an JSON format by http protocol.
-
 import sys
 import re
 from utils import re_compile  # copy from web.utils, in memory of Aaron Swartz
@@ -66,88 +15,48 @@ import tornado.options
 import logging
 import db
 from hashlib import sha1
+from news import NewsModel
 
 #from tornado.options import define, options
 
 SSDUT_SITE = "http://ssdut.dlut.edu.cn"
-#sys.WORK_DIR = "SSDUT_NEWS"
 
 #define("port", default=8888, help="run on the given port", type=int)
 
-#sys.stderr = open("ssdut.log", 'w')  #
-#sys.stderr = open(os.path.join(os.environ['LOCALAPPDATA'],
-                  #getattr(sys, 'WORK_DIR', "SSDUT_NEWS"),
-                  #'ssdutNews.log'), 'w')
-
 
 class BaseHandler(tornado.web.RequestHandler):
-    '''Base handler. contain the api of database. '''
-
+    ''' Basehandler, along with wrapper methods for manipulate news table
+    '''
     @property
     def backend(self):
         ''' return the sqlalchemy backend object defined in db.py'''
         return db.Backend.instance()
 
-    @property
-    def db_ses(self):
-        ''' return the sqlalchemy daatabase session '''
-        return self.backend.get_session()
+    def get_ses(self):
+        return db.Backend.instance().get_session()
 
-    DATABASE_FILE = 'ssdutNews.db'
-    # os.environ['LOCALAPPDATA']+'\\ssdutNews.db'
-    __database = None
-
-    @classmethod
-    def _database(cls):
-        '''use to create a database instance. It's singletan'''
-        if not cls.__database:
-            cls.__database = sqlite3.connect(cls.DATABASE_FILE)
-            cur = cls.__database.cursor()
-            try:
-                cur.execute('''CREATE TABLE news
-                    (
-                    no integer primary key,
-                    title text,
-                    link text,
-                    date text,
-                    author text,
-                    isread integer
-                    )''')
-            except sqlite3.OperationalError:
-                pass
-            cls.__database.commit()
-            cur.close()
-        return cls.__database
-
-    def __getattr__(self, attrname):
-        if attrname == "db":
-            return BaseHandler._database()
-        else:
-            raise AttributeError(attrname)
-
-    def store_news(self, no, title, link, date, author, isread=0, body=''):
+    def store_news(self, id, title, link, date, author, isread=0, body=''):
         '''This method is used to store news into database.
         for schema, see db.py
         no should be assigned by the author
         '''
-        # sqlalchemy Version
-        id = no  # TODO method vars , use id  not no
+        full_str = ''.join([title, link, date, author, body])
+        hashed = sha1(full_str).hexdigest()
 
-        hashed = sha1([title, link, date, author, body]).hexdigest()
-        self.db_ses.begin()  # transaction
-        self.db_ses.execute(
-            "INSERT INTO news VALUES \
-                    (:id,:title,:link,:body,:date,:author,:sha1)",
-            {
-                "id": id,
-                "title": title,
-                "link": link,
-                "body": body,
-                "date": date,
-                "author": author,
-                "sha1": hashed,
-            })
-        self.db_ses.commit()
+        ses = self.get_ses()
+        with ses.begin():
+            ses.execute(
+                "INSERT INTO news VALUES \
+                        (:id,:title,:link,:body,:date,:author,:sha1)",
+                {
+                    "id": id,
+                    "title": title,
+                    "link": link,
+                    "body": body,
+                    "date": date,
+                    "author": author,
+                    "sha1": hashed,
+                })
 
     def query_news(self, oldest=0, latest=0):
         ''' Query news which in the date interval (oldest, latest).
@@ -161,30 +70,37 @@ class BaseHandler(tornado.web.RequestHandler):
             ...,
             ]
         '''
-        ses = self.db_ses
-        ses.begin()
+        ses = self.get_ses()
+        with ses.begin():
+            if latest == 0:
+                res = ses.execute(
+                    "SELECT * FROM news WHERE id > :old ORDER BY id DESC",
+                    {'old': oldest})
+            elif oldest == 0:
+                res = ses.execute(
+                    "SELECT * FROM news WHERE id < :lat ORDER BY id DESC",
+                    {'lat': latest})
+            else:
+                res = ses.execute(
+                    '''
+                    SELECT * FROM news
+                    WHERE id > :o AND id < :l ORDER BY id DESC
+                    ''',
+                    {'o': oldest, 'l': latest})
 
-        if latest == 0:
-            res = ses.execute(
-                "SELECT * FROM news WHERE id > ? ORDER BY id DESC",
-                oldest)
-        elif oldest == 0:
-            res = ses.execute(
-                "SELECT * FROM news WHERE id < ? ORDER BY id DESC",
-                latest)
-        else:
-            res = ses.execute(
-                "SELECT * FROM news WHERE id > ? AND id <? ORDER BY id DESC",
-                oldest, latest)
-        ses.commit()
-
-        result = [dict(r) for r in res]  # convert into dict
+            result = [dict(r) for r in res]  # convert into dict
         return result
 
     def get_news_seq(self):
-        res = self.db_ses.execute(
-            "SELECT id FROM news ORDER BY id DESC")
-        return list(res)
+        ses = self.get_ses()
+        with ses.begin():
+            res = ses.execute(
+                "SELECT id FROM news ORDER BY id DESC")
+            if res:
+                result = [r.id for r in res]
+            else:
+                result = []
+        return result
 
     def mark_readed(self, news_no):
         return None
@@ -195,10 +111,18 @@ class BaseHandler(tornado.web.RequestHandler):
         self.db.commit()
         cur.close()
 
-    def query(self, num):
-        res = self.db_ses.execute(
-            "SELECT * FROM news WHERE id=?", num).first()
-        return dict(res)
+    def query(self, id):
+        ses = self.get_ses()
+        with ses.begin():
+            res = ses.execute(
+                "SELECT * FROM news WHERE id=:id", {'id': id}).first()
+            if res:
+                result = dict(res)
+            else:
+                result = {}
+        return result
+
+# TODO all the below code should be changed
 
 
 class CloseHandler(BaseHandler):

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #encoding=utf-8
 '''db'''
 import sqlite3
@@ -12,7 +13,7 @@ __all__ = ['Backend']
 class Backend(object):
     def __init__(self):
         engine = create_engine("sqlite:///news.db")
-        self._session = sessionmaker(bind=engine)
+        self._get_session = sessionmaker(bind=engine, autocommit=True)
 
     @classmethod
     def instance(cls):
@@ -22,18 +23,28 @@ class Backend(object):
         return cls._instance
 
     def get_session(self):
-        return self._session()
+        '''
+        for using with statement, autocommit=True 
+
+        usuage:
+        with ses.begin():
+            ses.execute(.....)
+            # ...
+        '''
+        ses = self._get_session()
+        return ses
 
     def init_db(self):
         ''' create schema '''
-        session = self.get_session()
-        session.execute('''
-            CREATE TABLE news(
-                id INTEGER PRIMARY KEY,
-                title TEXT,
-                link TEXT,
-                body TEXT,
-                date TEXT,
-                author TEXT,
-                sha1 VARCHAR(100)
-                );''')
+        ses = self.get_session()
+        with ses.begin():
+            ses.execute('''
+                CREATE TABLE news(
+                    id INTEGER PRIMARY KEY,
+                    title TEXT,
+                    link TEXT,
+                    body TEXT,
+                    date TEXT,
+                    author TEXT,
+                    sha1 VARCHAR(100)
+                    );''')
