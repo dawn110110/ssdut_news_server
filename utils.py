@@ -30,7 +30,22 @@ __all__ = [
   "sendmail"
 ]
 
+# my own utils:
+from functools import wraps
+
+def timed(f):
+    @wraps(f)
+    def wrapper(*args, **kargs):
+        start = time.time()
+        result = f(*args, **kargs)
+        elapsed = (time.time() - start)
+        print "%s() took %r secs to finish" % (f.__name__, elapsed)
+        return result
+    return wrapper
+
+# web.py utils
 import re, sys, time, threading, itertools, traceback, os
+
 
 try:
     import subprocess
@@ -1520,6 +1535,7 @@ class _EmailMessage:
     
     def __str__(self):
         return self.message.as_string()
+
 
 if __name__ == "__main__":
     import doctest
