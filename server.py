@@ -6,7 +6,6 @@ import re
 from utils import re_compile  # copy from web.utils, in memory of Aaron Swartz
 import os
 import json
-import sqlite3
 import tornado.web
 import tornado.wsgi
 import tornado.httpserver
@@ -15,112 +14,52 @@ import tornado.options
 import logging
 import db
 from hashlib import sha1
-from news import NewsModel
-
+from models import *
 #from tornado.options import define, options
+#define("port", default=8888, help="run on the given port", type=int)
 
 SSDUT_SITE = "http://ssdut.dlut.edu.cn"
-
-#define("port", default=8888, help="run on the given port", type=int)
 
 
 class BaseHandler(tornado.web.RequestHandler):
     ''' Basehandler, along with wrapper methods for manipulate news table
     '''
-    @property
-    def backend(self):
-        ''' return the sqlalchemy backend object defined in db.py'''
-        return db.Backend.instance()
-
-    def get_ses(self):
-        return db.Backend.instance().get_session()
-
     def store_news(self, id, title, link, date, author, isread=0, body=''):
-        '''This method is used to store news into database.
-        for schema, see db.py
-        no should be assigned by the author
+        '''store news into database.
+        id should be assigned by the author
+        the newer the new is the bigger the id is
         '''
         full_str = ''.join([title, link, date, author, body])
         hashed = sha1(full_str).hexdigest()
 
-        ses = self.get_ses()
-        with ses.begin():
-            ses.execute(
-                "INSERT INTO news VALUES \
-                        (:id,:title,:link,:body,:date,:author,:sha1)",
-                {
-                    "id": id,
-                    "title": title,
-                    "link": link,
-                    "body": body,
-                    "date": date,
-                    "author": author,
-                    "sha1": hashed,
-                })
+        new = New(
+            id=id,
+            title=title,
+            link=link,
+            date=date,
+            author=author,
+            body=body,
+            sha1=hashed)
+        db.ses.add(new)
+        db.ses.commit()
 
     def query_news(self, oldest=0, latest=0):
         ''' Query news which in the date interval (oldest, latest).
-
-        It will return result as a list like:
-            [
-            {"id":id, "title":title, "link":link, "date":date,
-            "author":author, "sha1": hased_value},
-            news2,
-            news3,
-            ...,
-            ]
         '''
-        ses = self.get_ses()
-        with ses.begin():
-            if latest == 0:
-                res = ses.execute(
-                    "SELECT * FROM news WHERE id > :old ORDER BY id DESC",
-                    {'old': oldest})
-            elif oldest == 0:
-                res = ses.execute(
-                    "SELECT * FROM news WHERE id < :lat ORDER BY id DESC",
-                    {'lat': latest})
-            else:
-                res = ses.execute(
-                    '''
-                    SELECT * FROM news
-                    WHERE id > :o AND id < :l ORDER BY id DESC
-                    ''',
-                    {'o': oldest, 'l': latest})
-
-            result = [dict(r) for r in res]  # convert into dict
-        return result
+        if latest == 0:
+            res = New.query.filter(New.id > oldest)
+        elif oldest == 0:
+            res = New.query.filter(New.id < latest)
+        else:
+            res = New.query.filter(New.id > oldest and New.id < latest)
+        return res
 
     def get_news_seq(self):
-        ses = self.get_ses()
-        with ses.begin():
-            res = ses.execute(
-                "SELECT id FROM news ORDER BY id DESC")
-            if res:
-                result = [r.id for r in res]
-            else:
-                result = []
-        return result
-
-    def mark_readed(self, news_no):
-        return None
-
-        # TODO this will be no use
-        cur = self.db.cursor()
-        cur.execute('''UPDATE news SET isread=1 WHERE no=%d''' % news_no)
-        self.db.commit()
-        cur.close()
+        res = db.ses.query(New.id).order_by(New.id.desc())
+        return [r.id for r in res]
 
     def query(self, id):
-        ses = self.get_ses()
-        with ses.begin():
-            res = ses.execute(
-                "SELECT * FROM news WHERE id=:id", {'id': id}).first()
-            if res:
-                result = dict(res)
-            else:
-                result = {}
-        return result
+        return New.query.filter(New.id == id).first()
 
 # TODO all the below code should be changed
 
