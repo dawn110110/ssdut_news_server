@@ -3,6 +3,7 @@ from db import Base
 
 __all__ = ['New']
 
+
 class New(Base):
     __tablename__ = 'news'
     id = Column(Integer, primary_key=True)

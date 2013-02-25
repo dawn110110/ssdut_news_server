@@ -15,6 +15,7 @@ import logging
 import db
 from hashlib import sha1
 from models import *
+import datetime
 #from tornado.options import define, options
 #define("port", default=8888, help="run on the given port", type=int)
 
@@ -29,9 +30,19 @@ class BaseHandler(tornado.web.RequestHandler):
         id should be assigned by the author
         the newer the new is the bigger the id is
         '''
+        #title = unicode(title, 'utf-8')
+        #link = unicode(link, 'utf-8')
+        #author = unicode(author, 'utf-8')
+        #body = unicode(body, 'utf-8')
+
         full_str = ''.join([title, link, date, author, body])
+        full_str = full_str.encode('utf-8')
+        logging.debug("full_str = %r" % full_str)
         hashed = sha1(full_str).hexdigest()
 
+        if isinstance(date, str):
+            date = datetime.date(*[int(v) for v in date.split('-')])
+            # ugly code above , FIXME later
         new = New(
             id=id,
             title=title,
@@ -40,6 +51,7 @@ class BaseHandler(tornado.web.RequestHandler):
             author=author,
             body=body,
             sha1=hashed)
+        logging.debug("new = %r" % new)
         db.ses.add(new)
         db.ses.commit()
 
@@ -51,7 +63,7 @@ class BaseHandler(tornado.web.RequestHandler):
         elif oldest == 0:
             res = New.query.filter(New.id < latest)
         else:
-            res = New.query.filter(New.id > oldest and New.id < latest)
+            res = New.query.filter(New.id > oldest, New.id < latest)
         return res
 
     def get_news_seq(self):
@@ -62,16 +74,6 @@ class BaseHandler(tornado.web.RequestHandler):
         return New.query.filter(New.id == id).first()
 
 # TODO all the below code should be changed
-
-
-class CloseHandler(BaseHandler):
-    '''Close the server'''
-
-    def post(self):
-        self.db.close()
-        tornado.ioloop.IOLoop.instance().stop()
-        tornado.ioloop.IOLoop.instance().close()
-        logging.debug("close")
 
 
 class UpdateHandler(BaseHandler):
@@ -128,14 +130,21 @@ class UpdateHandler(BaseHandler):
                 min_no = min([x["no"] for x in result])
 
                 # if not stored , store it
-                entries = self.query_news(oldest=(min_no-1),
-                                          latest=(max_no+1))
+                oldest = (min_no-1)
+                latest = (max_no+1)
+                logging.debug("oldest=%r, latest=%r" % (oldest, latest))
+                entries = self.query_news(oldest, latest)
+
                 for ret in result:
                     for entry in entries:
                         if ret["no"] == entry["no"]:
                             break
                     else:
                         logging.debug("no break")
+                        # NOTE hack
+                        ret['id'] = ret['no']
+                        del ret['no']
+                        logging.debug("%r" % ret)
                         self.store_news(**ret)
 
                 if ongoing:
@@ -306,13 +315,6 @@ class GetNewsHandler(UpdateHandler):
         self.finish()
 
 
-class MarkReadHandler(BaseHandler):
-    '''mark a news to readed'''
-
-    def post(self, news_no):
-        self.mark_readed(int(news_no))
-
-
 class ContentGetHandler(BaseHandler):
     '''Greb the content of this news from ssdut site'''
 
@@ -352,15 +354,12 @@ settings = {
 
 application = tornado.web.Application([
     (r"/get-oldest=([\d]+)-latest=([\d]+)-t=(\d+)", GetNewsHandler),
-    (r"/close", CloseHandler),
     (r"/update", UpdateHandler),
-    (r"/mark(\d+)", MarkReadHandler),
     (r"/getcontent/(\d+)", ContentGetHandler),
 ], **settings)
 
 
 def main():
-    import sys
     http_server = tornado.httpserver.HTTPServer(application)
     http_server.listen(getattr(sys, 'PORT', 8000))
 
