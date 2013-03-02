@@ -43,6 +43,33 @@ def timed(f):
         return result
     return wrapper
 
+
+# my own log Formatter base on tornado's log formatter
+try:
+    from tornado.options import _LogFormatter as Fmt # tornado 2.2
+except:
+    from tornado.log import LogFormatter as Fmt  # toando 2.4
+
+class TornadoFormatter(Fmt):
+    ''' require toanado installed
+    usuage:
+        use it as an ordinary LogFormatter
+    '''
+    def __init__(self, *args, **kargs):
+        TornadoFormatter.setterm()
+        Fmt.__init__(self, *args, **kargs)
+
+    @classmethod
+    def setterm(cls):
+        if hasattr(cls, '_setterm_called'):
+            pass
+        else:
+            import curses
+            curses.setupterm()
+            cls._setterm_called = True
+
+
+
 # web.py utils
 import re, sys, time, threading, itertools, traceback, os
 
