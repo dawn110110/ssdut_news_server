@@ -8,13 +8,75 @@ import datetime
 
 __all__ = ['html_parser', 'ssdut_news_parse']
 
+SSDUT_SITE = "http://ssdut.dlut.edu.cn"
+
 html_parser = HTMLParser()
+
+
+def ssdut_news_list(page_raw):
+    ''' parse the news_list page,
+    get a list of news, the same squence as the page,
+
+    result.soup
+          .page_no
+          .news_list
+          .total_records
+    '''
+    result = Storage()
+    soup = bsoup(page_raw)
+    result.soup = soup
+
+    # get current page number
+    r = soup.find(text=ur"\u4e0b\u4e00\u9875")  # text=u"下一页"
+    if r:
+        '''not the last page'''
+        next_page_link = r.parent.attrs[0][1]
+        r = re_compile(r'&p=(\d+)')
+        page_no = r.search(next_page_link).group(1)
+        page_no = int(page_no) - 1
+    else:
+        ''' the last page'''
+        r = soup.find(text=ur'\u4e0a\u4e00\u9875')
+        prev_page_link = r.parent.attrs[0][1]
+        r = re_compile(r'&p=(\d+)')
+        page_no = r.search(prev_page_link).group(1)
+        page_no = int(page_no) + 1
+    result.page_no = page_no
+
+    # get the news list
+    res = soup.findAll(attrs={"bgcolor": "#EEEEEE"})
+    news_list = []
+    counter = 1
+    for r in res:
+        a = r.findChildren("a")
+        date_str = r.find(text=re_compile("\d+-\d+\d+")).encode("utf-8")
+        news_list.append(
+            {
+                "link": a[0].get("href").encode("utf-8"),
+                "title": a[0].text.encode("utf-8"),
+                "source": a[1].text.encode("utf-8"),
+                "source_link": a[1].get("href").encode("utf-8"),
+                "date_str": date_str,
+                "date": datetime.date(
+                    *[int(n) for n in date_str.split("-")]),
+                "no": counter,
+            })
+        counter += 1
+    result.news_list = news_list
+
+    # tital news num
+    # 共\d+ t条记录
+    s = soup.find(text=re_compile(ur"\u5171\d+ \u6761\u8bb0\u5f55"))
+    r = re_compile(ur"\u5171(\d+)")
+    result.total_records = int(r.search(s).group(1))
+
+    return result
 
 
 def ssdut_news_parse(raw):
     ''' parse the raw page src,
 
-    store all results in a Storage object.
+    store all result in a Storage object.
     all strings are unicode
 
     result.soup
@@ -106,8 +168,8 @@ if __name__ == "__main__":
             result = ssdut_news_parse(src)
         return result
 
-    print 'run 10 times'
-    result = testing(10)
+    #print 'run 10 times'
+    result = testing(1)
     # run 10 times
     # testing() took 0.6200559139251709 secs to finish
 
@@ -118,3 +180,20 @@ if __name__ == "__main__":
     print "\n---", result.source
     print "\n---", result.title
     print "\n---", result.sha1
+
+    #ssdut_news_list
+    print "*"*20
+    site = urlopen("http://ssdut.dlut.edu.cn/index.php/News/student.html")
+    src = site.read()
+    site.close()
+
+    result = ssdut_news_list(src)
+    print 'page no:%r' % result.page_no
+    print 'len of news list:%r' % len(result.news_list)
+    print 'total %r records on site' % result.total_records
+    print ''
+    print '1st as an example'
+    new = result.news_list[0]
+    for k in new:
+        print '%s :  %s, %r' % (k, new[k], new[k])
+
