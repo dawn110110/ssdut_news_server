@@ -5,6 +5,7 @@ from HTMLParser import HTMLParser
 from utils import re_compile, Storage, timed
 from hashlib import sha1
 import datetime
+import logging
 
 __all__ = ['html_parser', 'ssdut_news_parse']
 
@@ -31,16 +32,18 @@ def ssdut_news_list(page_raw):
     if r:
         '''not the last page'''
         next_page_link = r.parent.attrs[0][1]
-        r = re_compile(r'&p=(\d+)')
+        logging.debug("r.parent.attrs = %r" % r.parent.attrs)
+        r = re_compile(r'/p/(\d+)')
         page_no = r.search(next_page_link).group(1)
-        page_no = int(page_no) - 1
+        page_no = int(page_no)  # - 1
     else:
         ''' the last page'''
         r = soup.find(text=ur'\u4e0a\u4e00\u9875')
         prev_page_link = r.parent.attrs[0][1]
-        r = re_compile(r'&p=(\d+)')
+        logging.debug("r.parent.attrs = %r" % r.parent.attrs)
+        r = re_compile(r'/p/(\d+)')
         page_no = r.search(prev_page_link).group(1)
-        page_no = int(page_no) + 1
+        page_no = int(page_no)  # + 1
     result.page_no = page_no
 
     # get the news list
@@ -49,7 +52,7 @@ def ssdut_news_list(page_raw):
     counter = 1
     for r in res:
         a = r.findChildren("a")
-        date_str = r.find(text=re_compile("\d+-\d+\d+")).encode("utf-8")
+        date_str = r.find(text=re_compile("\d{4}-\d{2}-\d{2}")).encode("utf-8")
         news_list.append(
             {
                 "link": a[0].get("href").encode("utf-8"),
@@ -62,6 +65,8 @@ def ssdut_news_list(page_raw):
                 "no": counter,
             })
         counter += 1
+        logging.debug("source = %s, source_link = %s" %
+                      (news_list[-1]['source'], news_list[-1]['source_link']))
     result.news_list = news_list
 
     # tital news num
@@ -93,7 +98,7 @@ def ssdut_news_parse(raw):
     result.date - date object
     result.body
         html src of the news body
-    result.unescaped_body
+    result.clean_body
         unescaped src of the news body,
     result.publisher
         发表人
@@ -188,12 +193,8 @@ if __name__ == "__main__":
     site.close()
 
     result = ssdut_news_list(src)
-    print 'page no:%r' % result.page_no
-    print 'len of news list:%r' % len(result.news_list)
-    print 'total %r records on site' % result.total_records
-    print ''
-    print '1st as an example'
-    new = result.news_list[0]
-    for k in new:
-        print '%s :  %s, %r' % (k, new[k], new[k])
+    print result.page_no
+    print result.total_records
+    print len(result.news_list)
+    print result.news_list[0]
 
