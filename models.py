@@ -27,7 +27,7 @@ class New(Base):
 
     def __unicode__(self):
         return self.__repr__()
-    
+
     def to_dict(self, body=False, raw=False):
         ''' default doesn't include body of news and page raw'''
         d = {}

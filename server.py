@@ -15,67 +15,83 @@ import logging
 import db
 from hashlib import sha1
 from models import *
+from sqlalchemy import func
 import datetime
 #from tornado.options import define, options
 #define("port", default=8888, help="run on the given port", type=int)
 
 
 class BaseHandler(tornado.web.RequestHandler):
-    ''' Basehandler, along with wrapper methods for manipulate news table
-    '''
-    def store_news(self, id, title, link, date, author, isread=0, body=''):
-        '''store news into database.
-        id should be assigned by the author
-        the newer the new is the bigger the id is
-        '''
-        #title = unicode(title, 'utf-8')
-        #link = unicode(link, 'utf-8')
-        #author = unicode(author, 'utf-8')
-        #body = unicode(body, 'utf-8')
-
-        full_str = ''.join([title, link, date, author, body])
-        full_str = full_str.encode('utf-8')
-        logging.debug("full_str = %r" % full_str)
-        hashed = sha1(full_str).hexdigest()
-
-        if isinstance(date, str):
-            date = datetime.date(*[int(v) for v in date.split('-')])
-            # ugly code above , FIXME later
-        new = New(
-            id=id,
-            title=title,
-            link=link,
-            date=date,
-            author=author,
-            body=body,
-            sha1=hashed)
-        logging.debug("new = %r" % new)
-        db.ses.add(new)
-        db.ses.commit()
-
-    def query_news(self, oldest=0, latest=0):
-        ''' Query news which in the date interval (oldest, latest).
-        '''
-        if latest == 0:
-            res = New.query.filter(New.id > oldest)
-        elif oldest == 0:
-            res = New.query.filter(New.id < latest)
-        else:
-            res = New.query.filter(New.id > oldest, New.id < latest)
-        return res
-
-    def get_news_seq(self):
-        res = db.ses.query(New.id).order_by(New.id.desc())
-        return [r.id for r in res]
-
-    def query(self, id):
-        return New.query.filter(New.id == id).first()
+    pass
 
 
-class TestHandler(BaseHandler):
+class IndexHandler(BaseHandler):
     ''' render news list'''
     def get(self):
-        self.render("index.html")
+        news = New.query.order_by('id desc')
+        self.render("index.html", news=news)
+
+
+class LatestHandler(BaseHandler):
+    def get(self, format='json'):
+        '''
+        newest id, sha1, title, link
+        /latest
+        '''
+        max_id = db.ses.query(func.max(New.id)).one()[0]
+        new = New.query.filter(New.id==max_id).one()
+        self.write(new.to_json())
+
+
+class IdRegionHandler(BaseHandler):
+    def get(self, id1, id2, format='json'):
+        ''' get news from id1 to id2
+        e.g.
+        /id/2000-2003
+        '''
+        ls = New.query.filter(New.id >= id1, New.id <= id2).order_by('id desc')
+        res = [new.to_dict(body=True) for new in ls]
+        self.write(json.dumps(res))
+
+class DateRegionHandler(BaseHandler):
+    def get(self, date1, date2):
+        '''
+        e.g.
+        /date/2013-2-15/2013-3-2
+        '''
+        d1 = datetime.date(*[int(x) for x in date1.split('-')])
+        d2 = datetime.date(*[int(x) for x in date2.split('-')])
+        q = New.query.filter(New.date >= d1, New.date <= d2)
+        news = q.order_by('id desc')  # order by id
+
+class QueryById(BaseHandler):
+    def get(self, id):
+        '''
+        e.g.
+        /id/2003
+        '''
+        try:
+            new = New.query.filter(New.id == id).one()
+            self.write(new.to_json(body=True))
+        except:
+            self.write("")
+
+
+class QueryByDate(BaseHandler):
+    def get(self, date_str):
+        '''
+        e.g.
+        /date/2013-3-1
+        '''
+        logging.debug('query date string = %r' % date_str)
+        date = datetime.date(*[int(x) for x in date_str.split('-')])
+        news = New.query.filter(New.date == date)
+        news_dict = [new.to_dict(body=True) for new in news]
+        self.write(json.dumps(news_dict))
+
+class SearchHandler(BaseHandler):
+    # TODO keyword search engine
+    pass
 
 settings = {
     "debug": True,
@@ -88,7 +104,20 @@ application = tornado.web.Application([
     #(r"/get-oldest=([\d]+)-latest=([\d]+)-t=(\d+)", GetNewsHandler),
     #(r"/update", UpdateHandler),
     #(r"/getcontent/(\d+)", ContentGetHandler),
-    (r'/$', TestHandler),
+    (r'/$', IndexHandler),
+
+    (r'/latest$', LatestHandler),
+
+    (r'/id-region/(\d+)-(\d+)', IdRegionHandler),
+    (r'/region/(\d+)-(\d+)', QueryRegionHandler),
+    (r'/id/(\d+)-(\d+)', QueryRegionHandler),
+
+    (r'/id/(\d+)$', QueryById),
+
+    (r'/date/(\d{4}-\d{1,2}-\d{1,2})$', QueryByDate),
+    (r'/date/(\d{4}-\d{1,2}-\d{1,2})/(\d{4}-\d{1,2}-\d{1,2})$',
+        DateRegionHandler),
+
     (r'/static/(.*)',
         tornado.web.StaticFileHandler,
         dict(path=settings['static_path'])),
