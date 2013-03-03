@@ -27,8 +27,8 @@ class New(Base):
 
     def __unicode__(self):
         return self.__repr__()
-
-    def to_json(self, body=False, raw=False):
+    
+    def to_dict(self, body=False, raw=False):
         ''' default doesn't include body of news and page raw'''
         d = {}
         keys = ['id', 'title', 'link',
@@ -41,6 +41,11 @@ class New(Base):
         for k in keys:
             d[k] = getattr(self, k)
         d['date'] = str(self.date)
+        return d
+
+    def to_json(self, body=False, raw=False):
+        ''' default doesn't include body of news and page raw'''
+        d = self.to_dict(body=body, raw=raw)
         return json.dumps(d)
 
 
