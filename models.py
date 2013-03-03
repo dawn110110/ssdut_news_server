@@ -3,6 +3,7 @@ from sqlalchemy.orm.exc import NoResultFound
 import db
 from db import Base
 import logging
+import json
 
 __all__ = ['New', 'BigDict', 'KV_util', 'kv', 'KV']
 
@@ -26,6 +27,21 @@ class New(Base):
 
     def __unicode__(self):
         return self.__repr__()
+
+    def to_json(self, body=False, raw=False):
+        ''' default doesn't include body of news and page raw'''
+        d = {}
+        keys = ['id', 'title', 'link',
+                'publisher', 'source', 'source_link', 'sha1']
+        if body:
+            keys.append('body')
+            keys.append('clean_body')
+        if raw:
+            keys.append('raw')
+        for k in keys:
+            d[k] = getattr(self, k)
+        d['date'] = str(self.date)
+        return json.dumps(d)
 
 
 class BigDict(Base):
