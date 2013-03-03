@@ -1,30 +1,115 @@
 {% extends "base.html" %}
 {% block header %}
-<h1>SSDUT学生周知列表</h1>
+<h1>SSDUT_NEWS_SERVER</h1>
+
 {% end %}
 {% block content %}
-<table id="news_list">
-  <thead>
-    <tr>
-      <th>id</th>
-      <th>标题</th>
-      <th>日期</th>
-      <th>来源</th>
-      <th>发表人</th>
-      <th>sha1</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for n in news %}
-    <tr>
-      <th>{{ n.id }}</th>
-      <th><a href="http://ssdut.dlut.edu.cn{{ n.link }}" >{{ n.title }}</a></th>
-      <th>{{ n.date }}</th>
-      <th><a href="http://ssdut.dlut.edu.cn{{ n.source_link }}">{{ n.source }}</a></th>
-      <th>{{ n.publisher }}</th>
-      <th>{{ n.sha1 }}</th>
-    </tr>
-  {% end %}
-  </tbody>
-</table>
+<link type="text/css" rel="stylesheet" href={{ static_url("index.css") }}></link>
+
+<h2>抓取 + 格式化 软件学院学生周知</h2>
+
+<p>如果你正在编写软院学生周知客户端，那么现在不必在客户端解析学院网的页面了，本站将解析好的，以json格式格式化好的学院新闻提供给你！</p>
+
+<p><a href="https://github.com/dawn110110/ssdut_news_server">报BUG / 源码</a></p>
+
+<p>联系：dawn110110 at gmail dot com</p>
+
+<h2>特性</h2>
+
+<ul>
+<li><a href="https://github.com/dawn110110/ssdut_news_server">开源</a></li>
+<li>新闻各部分分离（标题、链接、来源、正文、正文原文（html）、发表人……），并以json格式提供给你</li>
+<li>可按照 ID/ID范围/日期/日期范围 查询新闻</li>
+<li>关键字搜索</li>
+<li>查询最新新闻</li>
+<li>Unicode编码</li>
+<li>HTTP协议</li>
+</ul>
+
+
+<h2>快速开始（以js为例）</h2>
+
+<p>获取最新一条新闻的信息（标题、链接、id、sha1、日期等）</p>
+
+<pre><code>&gt; var res = "";
+&gt; $.get("/latest", function®{ res = r; })
+&gt; var latest = JSON.parse(res)
+
+&gt; latest.title
+  "关于数字媒体技术系系标征集的通知"
+&gt; latest.link
+  "/index.php/News/10098.html"
+&gt; latest.sha1
+  "12e5a57b7448bde9f41f287526d9d8b8978011f5"
+&gt; latest.date
+  "2013-03-03"
+&gt; latest.id
+  2683
+</code></pre>
+
+<h2>支持的全部查询</h2>
+
+<p>以下查询均使用HTTP GET方法，返回结果均为JSON字符串，以下按照 url, 含义 列出。</p>
+
+<ul>
+    <li><a href="/latest">/latest</a>
+
+<ul>
+<li>获取最新一条消息的基本信息</li>
+</ul>
+</li>
+<li><a href="/id/2000">/id/2000</a>
+
+<ul>
+<li>获取id为2000的一条消息</li>
+</ul>
+</li>
+<li><a href="/id/2000-2003">/id/2000-2003</a>
+
+<ul>
+<li>获取id为2000-2003之间的四条消息</li>
+</ul>
+</li>
+<li><a href="/date/2013-3-2">/date/20130-3-2</a>
+
+<ul>
+<li>获取3月2日发布的所有消息</li>
+</ul>
+</li>
+<li><a href="/date/2013-1-1/2013-3-2">/date/2013-1-1/2013-3-2</a>
+
+<ul>
+<li>获取1月1日到3月2日之间的所有消息</li>
+</ul>
+</li>
+<li><a href="/search/日语">/search/日语</a>
+
+<ul>
+<li>搜索包含关键字“日语”的所有新闻</li>
+</ul>
+</li>
+<li><a href="/search/日语%20演讲">/search/日语%20演讲</a>
+
+<ul>
+<li>搜索包含关键字“日语”和“演讲”的全部消息，支持更多关键字</li>
+</ul>
+</li>
+</ul>
+
+
+<p>除latest外，返回结果中每一条新闻均包括下列内容：</p>
+
+<ul>
+<li>id</li>
+<li>title</li>
+<li>body 新闻的内容html原文（仅内容部分）</li>
+<li>clean_body 新闻内容的纯文字部分（包含换行，缩进等。目前此项存在小bug若干，可能有无关内容）</li>
+<li>link 原文链接</li>
+<li>source 来源</li>
+<li>source_link 来源链接</li>
+<li>date 日期</li>
+<li>publisher 发表人</li>
+<li>sha1 原页面的sha1 hash值</li>
+</ul>
+
 {% end %}
