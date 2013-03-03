@@ -12,7 +12,7 @@ SSdut-News: https://github.com/dawn110110/SSdut-News
 
 ##试用
 
-1. 安装依赖：`pip install -r requirements.txt`
+1. 安装依赖：`pip install -r requirements.txt`，如果使用MySQL，要安装驱动，`pip install MySQL-python`
 2. 数据库设置，打开`config.py`，例如：
 
     db_config = 'mysql://user:pass@hostname/dbname'
