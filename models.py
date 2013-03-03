@@ -4,7 +4,7 @@ import db
 from db import Base
 import logging
 
-__all__ = ['New']
+__all__ = ['New', 'BigDict', 'KV_util', 'kv', 'KV']
 
 
 class New(Base):
@@ -65,6 +65,7 @@ class KV_util(object):
             q = BigDict.query.filter(BigDict.key == key)
             q.one()
             q.update({'val': val}, synchronize_session=False)
+            db.ses.commit()
         except NoResultFound:
             record = BigDict(key=key, val=val)
             db.ses.add(record)
