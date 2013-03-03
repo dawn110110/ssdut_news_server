@@ -10,11 +10,15 @@ __all__ = ['New', 'BigDict', 'KV_util', 'kv', 'KV']
 class New(Base):
     __tablename__ = 'news'
     id = Column(Integer, primary_key=True)
+    raw = Column(Text)
     title = Column(String(300))
     link = Column(String(300))
     body = Column(Text(convert_unicode=True))
+    clean_body = Column(Text)
     date = Column(Date)
-    author = Column(String(300))
+    publisher = Column(String(300))
+    source = Column(String(300))
+    source_link = Column(String(300))
     sha1 = Column(String(50))
 
     def __repr__(self):
