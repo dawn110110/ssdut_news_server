@@ -32,7 +32,7 @@ def ssdut_news_list(page_raw):
     if r:
         '''not the last page'''
         next_page_link = r.parent.attrs[0][1]
-        logging.debug("r.parent.attrs = %r" % r.parent.attrs)
+        #logging.debug("r.parent.attrs = %r" % r.parent.attrs)
         r = re_compile(r'/p/(\d+)')
         page_no = r.search(next_page_link).group(1)
         page_no = int(page_no)  # - 1
@@ -65,8 +65,8 @@ def ssdut_news_list(page_raw):
                 "no": counter,
             })
         counter += 1
-        logging.debug("source = %s, source_link = %s" %
-                      (news_list[-1]['source'], news_list[-1]['source_link']))
+        #logging.debug("source = %s, source_link = %s" %
+        #              (news_list[-1]['source'], news_list[-1]['source_link']))
     result.news_list = news_list
 
     # tital news num

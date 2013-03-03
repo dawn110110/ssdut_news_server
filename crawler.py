@@ -2,13 +2,13 @@
 #encoding=utf-8
 
 from models import *
+from sqlalchemy import func
 import db
 import parser as par
-from config import update_interval
+import config
 from utils import TornadoFormatter
 import time
 import logging
-import urllib2
 from urllib2 import urlopen
 import string
 
@@ -24,7 +24,7 @@ class SSdutSiteCrawler(object):
 
     def page_url(self, p):
         url = self._news_url_template.substitute(p=p)
-        logging.info("page url = %r" % url)
+        logging.debug("page url = %r" % url)
         return url
 
     def get_page_result(self, p):
@@ -33,18 +33,44 @@ class SSdutSiteCrawler(object):
 
     def update_db(self, p=1):
         # TODO  fix hole , update
-        logging.debug("Update begin")
+        db_max_id = db.ses.query(func.max(New.id)).one()[0]
 
-        res = self.get_page_result(1)
+        site_res = self.get_page_result(1)
 
-        logging.info("total records on site = %r" % res.total_records)
-        logging.debug("kv.total_records = %r" % kv.total_records)
+        logging.info("records on site = %r, max_id in db = %r" %
+                     (site_res.total_records, db_max_id))
+        news_id = site_res.total_records
 
-        if kv.total_records < res.total_records:
-            logging.info("will update %r news" %
-                         (res.total_records-kv.total_records))
+        if db_max_id < site_res.total_records:
+            n = site_res.total_records - db_max_id
+            logging.info("will update %r news" % n)
             # updte news here
-            kv.total_records = res.total_records
+            # assume that, n<=12
+            for new in site_res.news_list:
+                if n <= 0:
+                    break
+                n -= 1
+                print n
+                # do update
+                src = urlopen(SITE_URL + new['link']).read()
+                detail = par.ssdut_news_parse(src)
+                r = New(
+                    id=news_id,
+                    raw=detail.raw,
+                    title=detail.title,
+                    link=new['link'],
+                    body=detail.body,
+                    clean_body=detail.clean_body,
+                    date=detail.date,
+                    publisher=detail.publisher,
+                    source=detail.source,
+                    source_link=new['source_link'],
+                    sha1=detail.sha1,
+                    search_text=detail.search_text)
+                logging.info("%r added to db, id = %r" % (r, r.id))
+                db.ses.add(r)
+                db.ses.commit()
+                news_id -= 1
         else:
             logging.info("no news to be update")
         logging.debug("update finish")
@@ -103,9 +129,16 @@ if __name__ == "__main__":
 
     lg.addHandler(console_handler)
     lg.addHandler(file_handler)
-    lg.setLevel(logging.DEBUG)
+    lg.setLevel(logging.INFO)
 
-    updater.reset_news_db()
-    #while True:
-    #    updater.update_db()
-    #    time.sleep(5)
+    if kv.db_inited:
+        logging.info("Initial data already loaded, begin updating")
+    else:
+        logging.info("begin crawling initial data...")
+        updater.reset_news_db()
+        kv.db_inited = 'true'
+        logging.info("db init finished")
+
+    while True:
+        updater.update_db()
+        time.sleep(config.update_interval)
