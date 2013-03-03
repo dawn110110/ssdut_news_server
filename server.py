@@ -69,8 +69,12 @@ class DateRegionHandler(BaseHandler):
         '''
         d1 = datetime.date(*[int(x) for x in date1.split('-')])
         d2 = datetime.date(*[int(x) for x in date2.split('-')])
+        logging.debug("d1=%r" % d1)
+        logging.debug("d2=%r" % d2)
         q = New.query.filter(New.date >= d1, New.date <= d2)
         news = q.order_by('id desc')  # order by id
+        res = [new.to_dict(body=True) for new in news]
+        self.write(json.dumps(res))
 
 
 class QueryById(BaseHandler):
@@ -116,6 +120,13 @@ class TestSearchHandler(BaseHandler):
         self.render('search_result.html',
                     res=res, kw_list=kw_list.split(' '))
 
+
+class NewsListHandler(BaseHandler):
+    def get(self):
+        news = New.query.order_by('id desc')
+        self.render("news_list.html", news=news)
+
+
 settings = {
     "debug": True,
     "static_path": os.path.join(os.path.dirname(__file__), 'static'),
@@ -125,6 +136,7 @@ settings = {
 
 application = tornado.web.Application([
     (r'/$', IndexHandler),
+    (r'/news_list', NewsListHandler),
     (r'/test/search/', TestSearchHandler),
 
     (r'/latest$', LatestHandler),
