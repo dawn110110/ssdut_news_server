@@ -92,28 +92,28 @@ class SSdutSiteCrawler(object):
         news_id = res_list[0].total_records
         for page in res_list:
             for new in page.news_list:
-				try:
+                try:
                     src = urlopen(SITE_URL + new['link']).read()
                     detail = par.ssdut_news_parse(src)
                     r = New(
-                        id=news_id,
-                        raw=detail.raw,
-                        title=detail.title,
-                        link=new['link'],
-                        body=detail.body,
-                        clean_body=detail.clean_body,
-                        date=detail.date,
-                        publisher=detail.publisher,
-                        source=detail.source,
-                        source_link=new['source_link'],
-                        sha1=detail.sha1,
-                        search_text=detail.search_text)
+                            id=news_id,
+                            raw=detail.raw,
+                            title=detail.title,
+                            link=new['link'],
+                            body=detail.body,
+                            clean_body=detail.clean_body,
+                            date=detail.date,
+                            publisher=detail.publisher,
+                            source=detail.source,
+                            source_link=new['source_link'],
+                            sha1=detail.sha1,
+                            search_text=detail.search_text)
                     db.ses.add(r)
                     db.ses.commit()
-				except:
-					logging.error("error, the link is %r" % page['link'])
-				finally:
-					news_id -= 1
+                except:
+                    logging.error("error, the link is %r" % page['link'])
+                finally:
+                    news_id -= 1
 
 
 if __name__ == "__main__":
