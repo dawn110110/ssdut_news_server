@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block header %}
+  <h1>搜索结果</h1>
+  <h2>
+你搜索的关键字有：
+   {% for word in kw_list %}
+   {{ word }},
+   {% end %}
+  </p>
+{% end %}
+
+{% block content %}
+<table id="news_list">
+  <thead>
+    <tr>
+      <th>id</th>
+      <th>标题</th>
+      <th>日期</th>
+      <th>来源</th>
+      <th>发表人</th>
+      <th>sha1</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for n in res %}
+    <tr>
+      <th>{{ n.id }}</th>
+      <th><a href="http://ssdut.dlut.edu.cn{{ n.link }}" >{{ n.title }}</a></th>
+      <th>{{ n.date }}</th>
+      <th><a href="http://ssdut.dlut.edu.cn{{ n.source_link }}">{{ n.source }}</a></th>
+      <th>{{ n.publisher }}</th>
+      <th>{{ n.sha1 }}</th>
+    </tr>
+  {% end %}
+  </tbody>
+</table>
+
+{% end %}
+

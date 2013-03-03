@@ -59,7 +59,7 @@ class SSdutSiteCrawler(object):
 
         # get all the news links
         res_list = []
-        for p in xrange(1, 224):
+        for p in xrange(1, 100):
             res_list.append(self.get_page_result(p))
 
         # get news detail and store in db
@@ -79,7 +79,8 @@ class SSdutSiteCrawler(object):
                     publisher=detail.publisher,
                     source=detail.source,
                     source_link=new['source_link'],
-                    sha1=detail.sha1)
+                    sha1=detail.sha1,
+                    search_text=detail.search_text)
                 db.ses.add(r)
                 db.ses.commit()
 

@@ -147,6 +147,9 @@ def ssdut_news_parse(raw):
     # use utf-8 encoding
     for k in ['title', 'source', 'body', 'clean_body', 'publisher']:
         result[k] = result[k].encode('utf-8')
+    result.search_text = ''.join([result.title, result.source,
+                                  result.clean_body, result.publisher,
+                                  result.sha1])
 
     return result
 

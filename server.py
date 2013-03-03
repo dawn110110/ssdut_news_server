@@ -16,13 +16,20 @@ import db
 from hashlib import sha1
 from models import *
 from sqlalchemy import func
+from sqlalchemy import or_, and_
 import datetime
 #from tornado.options import define, options
 #define("port", default=8888, help="run on the given port", type=int)
 
 
 class BaseHandler(tornado.web.RequestHandler):
-    pass
+    def search(self, kw_list):
+        ''' simple key word searching, using sql LIKE'''
+        logging.debug("searching, keywords = %s" % kw_list)
+        condition = and_(*[New.search_text.like('%'+word.encode("utf-8")+'%')
+                         for word in kw_list])
+        res = New.query.filter(condition)
+        return res
 
 
 class IndexHandler(BaseHandler):
@@ -39,7 +46,7 @@ class LatestHandler(BaseHandler):
         /latest
         '''
         max_id = db.ses.query(func.max(New.id)).one()[0]
-        new = New.query.filter(New.id==max_id).one()
+        new = New.query.filter(New.id == max_id).one()
         self.write(new.to_json())
 
 
@@ -53,6 +60,7 @@ class IdRegionHandler(BaseHandler):
         res = [new.to_dict(body=True) for new in ls]
         self.write(json.dumps(res))
 
+
 class DateRegionHandler(BaseHandler):
     def get(self, date1, date2):
         '''
@@ -63,6 +71,7 @@ class DateRegionHandler(BaseHandler):
         d2 = datetime.date(*[int(x) for x in date2.split('-')])
         q = New.query.filter(New.date >= d1, New.date <= d2)
         news = q.order_by('id desc')  # order by id
+
 
 class QueryById(BaseHandler):
     def get(self, id):
@@ -89,9 +98,23 @@ class QueryByDate(BaseHandler):
         news_dict = [new.to_dict(body=True) for new in news]
         self.write(json.dumps(news_dict))
 
+
 class SearchHandler(BaseHandler):
     # TODO keyword search engine
-    pass
+    def get(self, keywords=None):
+        kw_list = keywords.split(' ')
+        res = self.search(kw_list)
+        result = [r.to_dict(body=True) for r in res]
+        self.write(json.dumps(result))
+
+
+class TestSearchHandler(BaseHandler):
+    def post(self):
+        kw_list = self.get_argument('kw_list')
+        res = self.search(kw_list.split(' '))
+        logging.debug("search ended, begin reder page")
+        self.render('search_result.html',
+                    res=res, kw_list=kw_list.split(' '))
 
 settings = {
     "debug": True,
@@ -101,22 +124,20 @@ settings = {
 }
 
 application = tornado.web.Application([
-    #(r"/get-oldest=([\d]+)-latest=([\d]+)-t=(\d+)", GetNewsHandler),
-    #(r"/update", UpdateHandler),
-    #(r"/getcontent/(\d+)", ContentGetHandler),
     (r'/$', IndexHandler),
+    (r'/test/search/', TestSearchHandler),
 
     (r'/latest$', LatestHandler),
 
-    (r'/id-region/(\d+)-(\d+)', IdRegionHandler),
-    (r'/region/(\d+)-(\d+)', QueryRegionHandler),
-    (r'/id/(\d+)-(\d+)', QueryRegionHandler),
-
     (r'/id/(\d+)$', QueryById),
+    (r'/id/(\d+)-(\d+)', IdRegionHandler),
 
     (r'/date/(\d{4}-\d{1,2}-\d{1,2})$', QueryByDate),
     (r'/date/(\d{4}-\d{1,2}-\d{1,2})/(\d{4}-\d{1,2}-\d{1,2})$',
         DateRegionHandler),
+
+    (r'/search/(.+)', SearchHandler),
+    (r'/search', SearchHandler),  # for post
 
     (r'/static/(.*)',
         tornado.web.StaticFileHandler,

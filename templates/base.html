@@ -15,6 +15,13 @@
       <h1>just for test</h1>
       {% end %}
     </div>
+
+    <!-- search block -->
+    <form method='post' action='/test/search/'>
+      <input type="text" name="kw_list">
+      <button type='submit'>搜索</button>
+    </form>
+
     <div id="content">
       {% block content %}
 

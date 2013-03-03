@@ -20,6 +20,7 @@ class New(Base):
     publisher = Column(String(300))
     source = Column(String(300))
     source_link = Column(String(300))
+    search_text = Column(Text)  # combine all words together, for searching
     sha1 = Column(String(50))
 
     def __repr__(self):
