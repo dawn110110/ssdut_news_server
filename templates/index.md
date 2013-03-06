@@ -21,7 +21,7 @@
 获取最新一条新闻的信息（标题、链接、id、sha1、日期等）
 
 	> var res = "";
-	> $.get("/latest", function®{ res = r; })
+	> $.get("/latest", function(r){ res = r; })
 	> var latest = JSON.parse(res)
 	
 	> latest.title

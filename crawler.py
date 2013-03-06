@@ -2,6 +2,7 @@
 #encoding=utf-8
 
 from models import *
+import traceback
 from sqlalchemy import func
 import db
 import parser as par
@@ -85,35 +86,40 @@ class SSdutSiteCrawler(object):
 
         # get all the news links
         res_list = []
-        for p in xrange(1, 200):
+        for p in xrange(1, 220):
             res_list.append(self.get_page_result(p))
 
         # get news detail and store in db
         news_id = res_list[0].total_records
         for page in res_list:
             for new in page.news_list:
-                try:
-                    src = urlopen(SITE_URL + new['link']).read()
-                    detail = par.ssdut_news_parse(src)
-                    r = New(
-                            id=news_id,
-                            raw=detail.raw,
-                            title=detail.title,
-                            link=new['link'],
-                            body=detail.body,
-                            clean_body=detail.clean_body,
-                            date=detail.date,
-                            publisher=detail.publisher,
-                            source=detail.source,
-                            source_link=new['source_link'],
-                            sha1=detail.sha1,
-                            search_text=detail.search_text)
-                    db.ses.add(r)
-                    db.ses.commit()
-                except:
-                    logging.error("error, the link is %r" % page['link'])
-                finally:
-                    news_id -= 1
+                #try:
+                src = urlopen(SITE_URL + new['link']).read()
+                detail = par.ssdut_news_parse(src)
+                r = New(
+                        id=news_id,
+                        raw=detail.raw,
+                        title=detail.title,
+                        link=new['link'],
+                        body=detail.body,
+                        clean_body=detail.clean_body,
+                        date=detail.date,
+                        publisher=detail.publisher,
+                        source=detail.source,
+                        source_link=new['source_link'],
+                        sha1=detail.sha1,
+                        search_text=detail.search_text)
+                db.ses.add(r)
+                db.ses.commit()
+                logging.info("%r, added, link=%r, page_no = %r" %
+                                 (r, r.link, page.page_no))
+                news_id -= 1
+                    #except:
+                    #    traceback.print_exc()
+                    #    logging.error("error, r=  %r" % r )
+                    #    logging.error("page no = %r" % page.page_no)
+                    #finally:
+                    #    news_id -= 1
 
 
 if __name__ == "__main__":
@@ -132,11 +138,12 @@ if __name__ == "__main__":
 
     lg.addHandler(console_handler)
     lg.addHandler(file_handler)
-    lg.setLevel(logging.INFO)
+    lg.setLevel(logging.DEBUG)
 
     if kv.db_inited:
         logging.info("Initial data already loaded, begin updating")
     else:
+
         logging.info("begin crawling initial data...")
         updater.reset_news_db()
         kv.db_inited = 'true'

@@ -40,7 +40,7 @@ def ssdut_news_list(page_raw):
         ''' the last page'''
         r = soup.find(text=ur'\u4e0a\u4e00\u9875')
         prev_page_link = r.parent.attrs[0][1]
-        logging.debug("r.parent.attrs = %r" % r.parent.attrs)
+        #logging.debug("r.parent.attrs = %r" % r.parent.attrs)
         r = re_compile(r'/p/(\d+)')
         page_no = r.search(prev_page_link).group(1)
         page_no = int(page_no)  # + 1
@@ -141,7 +141,13 @@ def ssdut_news_parse(raw):
             "style": "font-size:14px;float:left;text-align:right;width:80%"
         })
     r = re_compile(ur"\u53d1\u8868\u4eba\uff1a(.+)")
-    name = r.findall(s.text)[0]
+    #logging.debug("publisher string = %r " % s)
+
+    try:
+        name = r.findall(s.text)[0]
+    except:
+        logging.warn(" %s has no publisher " % result.title)
+        name = ""  # no publisher: like this: index.php/News/8692.html
     result.publisher = name.rstrip().lstrip()
 
     # use utf-8 encoding
