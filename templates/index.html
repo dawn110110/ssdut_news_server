@@ -8,7 +8,7 @@
 
 <h2>抓取 + 格式化 软件学院学生周知</h2>
 
-<p>如果你正在编写软院学生周知客户端，那么现在不必在客户端解析学院网的页面了，本站将解析好的，以json格式格式化好的学院新闻提供给你！</p>
+<h3>如果你正在编写软院学生周知客户端，那么现在不必在客户端解析学院网的页面了，本站将解析好的，以json格式格式化好的学院新闻提供给你！</h3>
 
 <p><a href="https://github.com/dawn110110/ssdut_news_server">报BUG / 源码</a></p>
 
@@ -32,7 +32,7 @@
 <p>获取最新一条新闻的信息（标题、链接、id、sha1、日期等）</p>
 
 <pre><code>&gt; var res = "";
-&gt; $.get("/latest", function®{ res = r; })
+&gt; $.get("/latest", function(r){ res = r; })
 &gt; var latest = JSON.parse(res)
 
 &gt; latest.title
