@@ -139,8 +139,7 @@ settings = {
     "template_path": os.path.join(os.path.dirname(__file__), 'templates'),
     "cookie_secret": "61eJJFuYh7EQnp2XdTP1o/VooETzKXQAGaYdkL5gEmG=",
 }
-
-application = tornado.web.Application([
+url_map = [
     (r'/$', IndexHandler),
     (r'/news_list', NewsListHandler),
     (r'/test/detail/(\d+)', DetailHanlder),
@@ -161,7 +160,9 @@ application = tornado.web.Application([
     (r'/static/(.*)',
         tornado.web.StaticFileHandler,
         dict(path=settings['static_path'])),
-], **settings)
+]
+
+application = tornado.web.Application(url_map, **settings)
 
 
 def main():
