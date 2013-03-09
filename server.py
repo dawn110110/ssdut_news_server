@@ -127,6 +127,12 @@ class NewsListHandler(BaseHandler):
         self.render("news_list.html", news=news)
 
 
+class DetailHanlder(BaseHandler):
+    def get(self, id):
+        new = New.query.filter(New.id == id).one()
+        self.render("detail.html", new=new)
+
+
 settings = {
     "debug": True,
     "static_path": os.path.join(os.path.dirname(__file__), 'static'),
@@ -137,6 +143,7 @@ settings = {
 application = tornado.web.Application([
     (r'/$', IndexHandler),
     (r'/news_list', NewsListHandler),
+    (r'/test/detail/(\d+)', DetailHanlder),
     (r'/test/search/', TestSearchHandler),
 
     (r'/latest$', LatestHandler),

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1> {% raw new.title %}</h1>
+<h2>publisher: {{ new.publisher }}</h2>
+<h2>{{ new.date }}</h2>
+<h2>source: {{ new.source }}</h2>
+<h2>origin link: <a href="http://ssdut.dlut.edu.cn{{ new.link }}">{{ new.link }}</a></h2>
+<div>{% raw new.body %}</div>
+{% end %}

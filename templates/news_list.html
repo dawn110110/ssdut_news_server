@@ -18,7 +18,8 @@
   {% for n in news %}
     <tr>
       <th>{{ n.id }}</th>
-      <th><a href="http://ssdut.dlut.edu.cn{{ n.link }}" >{{ n.title }}</a></th>
+      <!--<th><a href="http://ssdut.dlut.edu.cn{{ n.link }}" >{% raw n.title %}</a></th>-->
+      <th><a href="/test/detail/{{ n.id }}" >{{ n.title }}</a></th>
       <th>{{ n.date }}</th>
       <th><a href="http://ssdut.dlut.edu.cn{{ n.source_link }}">{{ n.source }}</a></th>
       <th>{{ n.publisher }}</th>
