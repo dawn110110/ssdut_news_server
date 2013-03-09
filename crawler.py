@@ -53,7 +53,12 @@ class SSdutSiteCrawler(object):
                 n -= 1
                 print n
                 # do update
-                src = urlopen(SITE_URL + new['link']).read()
+                try:
+                    src = urlopen(SITE_URL + new['link']).read()
+                except:
+                    logging.error("urlopen() ERROR, link = %r" % new['link'])
+                    news_id -= 1
+                    continue
                 detail = par.ssdut_news_parse(src)
                 r = New(
                     id=news_id,
@@ -70,10 +75,14 @@ class SSdutSiteCrawler(object):
                     search_text=detail.search_text)
                 logging.info("%r added to db, id = %r" % (r, r.id))
                 db.ses.add(r)
-                db.ses.commit()
+                try:
+                    db.ses.commit()
+                except:
+                    db.ses.rollback()
+                    logging.error("session commit error, when add %r" % r)
                 news_id -= 1
         else:
-            logging.info("no news to be update")
+            pass
         logging.debug("update finish")
 
     def reset_news_db(self):
@@ -138,7 +147,7 @@ if __name__ == "__main__":
 
     lg.addHandler(console_handler)
     lg.addHandler(file_handler)
-    lg.setLevel(logging.DEBUG)
+    lg.setLevel(logging.INFO)
 
     if kv.db_inited:
         logging.info("Initial data already loaded, begin updating")
