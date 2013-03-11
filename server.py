@@ -165,6 +165,77 @@ class DetailHanlder(BaseHandler):
         self.render("detail.html", new=new)
 
 
+class PageHandler(BaseHandler):
+    NEWS_PER_PAGE = 20
+
+    @property
+    def total_news(self):
+        r = db.ses.query(func.count(New.id))
+        try:
+            cnt = r.one()[0]
+            db.ses.commit()
+        except:
+            db.ses.rollback()
+            logging.error("error when count news")
+            cnt = 0
+        return cnt
+
+    @property
+    def max_new_id(self):
+        r = db.ses.query(func.max(New.id))
+        try:
+            cnt = r.one()[0]
+            db.ses.commit()
+        except:
+            db.ses.rollback()
+            logging.error("error when count news")
+            cnt = 0
+        return cnt
+
+    @property
+    def min_new_id(self):
+        r = db.ses.query(func.min(New.id))
+        try:
+            cnt = r.one()[0]
+            db.ses.commit()
+        except:
+            db.ses.rollback()
+            logging.error("error when count news")
+            cnt = 0
+        return cnt
+
+    def myrange(self, a ,b):
+        return range(a, b+1)
+
+    def get(self, pageno):
+        max_id = self.max_new_id
+        min_id = self.min_new_id
+        new_cnt = self.total_news
+
+        min_pageno = 1
+        max_pageno =  new_cnt/self.NEWS_PER_PAGE + 1
+
+        pageno = int(pageno)
+        pageno = max(pageno, min_pageno)
+        pageno = min(pageno, max_pageno)
+
+        id_big = max(max_id - (pageno-1) * self.NEWS_PER_PAGE, min_id)
+        id_small = max(id_big - self.NEWS_PER_PAGE, min_id)
+
+        q = New.query.filter(New.id >= id_small, New.id <= id_big)
+        news = q.order_by("id desc")
+        prev_list = self.myrange(max(pageno-5, min_pageno), pageno-1)
+        next_list = self.myrange(pageno+1, min(pageno+5, max_pageno))
+
+        self.render(
+            "page.html",
+            news=news,
+            prev_list=prev_list,
+            next_list=next_list,
+            max_pageno=max_pageno,
+            pageno=pageno)
+
+
 settings = {
     "debug": True,
     "static_path": os.path.join(os.path.dirname(__file__), 'static'),
@@ -176,6 +247,7 @@ url_map = [
     (r'/news_list', NewsListHandler),
     (r'/test/detail/(\d+)', DetailHanlder),
     (r'/test/search/', TestSearchHandler),
+    (r'/test/page/(\d+)', PageHandler),
 
     (r'/latest$', LatestHandler),
 
