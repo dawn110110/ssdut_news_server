@@ -13,6 +13,7 @@ import logging
 from urllib2 import urlopen
 import string
 from renren import RenRen
+import heapq
 SITE_URL = 'http://ssdut.dlut.edu.cn'
 
 
@@ -24,6 +25,7 @@ class SSdutSiteCrawler(object):
         self._init_going = False
         self.renren = RenRen()
         self.renren.login(config.renren_email, config.renren_pw)  # login
+        self.post_queue = []  # this is a heapq of new's id
 
     def page_url(self, p):
         url = self._news_url_template.substitute(p=p)
@@ -34,9 +36,43 @@ class SSdutSiteCrawler(object):
         src = urlopen(self.page_url(p)).read()
         return par.ssdut_news_list(src)
 
+    def add_new_post_to_q(self, id):
+        heapq.heappush(self.post_queue, id)
+        print self.post_queue
+
+    def do_one_post_in_q(self):
+        try:
+            id = heapq.heappop(self.post_queue)
+        except IndexError:  # empty queue
+            return
+        # really post
+        try:
+            new = New.query.filter(New.id == id).one()
+            db.ses.commit()
+            s = ''.join([
+                new.title,
+                ' - ',
+                new.publisher,
+                ' ',
+                'http://ssdut.dlut.edu.cn',
+                new.link])
+            self.renren.postStatus(s)
+            logging.info("POST ON RENREN: %s" % s)
+        except Exception, e:
+            self.add_new_post_to_q(id)  # maybe next time it could be posted
+            db.ses.rollback()
+            traceback.print_exc()
+
     def update_db(self, p=1):
         # TODO  fix hole , update
+        self.do_one_post_in_q()  # do one post
+
         db_max_id = db.ses.query(func.max(New.id)).one()[0]
+        try:
+            db.ses.commit()
+        except:
+            db.ses.rollback()
+            db_max_id = 100000
 
         site_res = self.get_page_result(1)
 
@@ -83,14 +119,9 @@ class SSdutSiteCrawler(object):
                     db.ses.rollback()
                     logging.error("session commit error, when add %r" % r)
 
-                # post to renren
-                self.renren.postStatus(
-                    detail.title+
-                    ' - '+
-                    detail.publisher+
-                    ' '+
-                    'http://ssdut.dlut.edu.cn'+
-                    new['link'])
+                #  add a post to queue
+                s = self.add_new_post_to_q(news_id)
+
                 news_id -= 1
         else:
             pass
