@@ -1,4 +1,6 @@
 tornado>=2.2
 sqlalchemy>=0.7
 BeautifulSoup>=3.2.1
+requests==1.1.0
+pyquery==1.2.4
 
