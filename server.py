@@ -29,6 +29,12 @@ class BaseHandler(tornado.web.RequestHandler):
         condition = and_(*[New.search_text.like('%'+word.encode("utf-8")+'%')
                          for word in kw_list])
         res = New.query.filter(condition)
+        try:
+            db.ses.commit()
+        except:
+            db.ses.rollback()
+            logging.error(
+                "error occured when searching, rollback transaction")
         return res
 
 
@@ -47,6 +53,10 @@ class LatestHandler(BaseHandler):
         '''
         max_id = db.ses.query(func.max(New.id)).one()[0]
         new = New.query.filter(New.id == max_id).one()
+        try:
+            db.ses.commit()
+        except:
+            db.ses.rollback()
         self.write(new.to_json())
 
 
@@ -57,6 +67,10 @@ class IdRegionHandler(BaseHandler):
         /id/2000-2003
         '''
         ls = New.query.filter(New.id >= id1, New.id <= id2).order_by('id desc')
+        try:
+            db.ses.commit()
+        except:
+            db.ses.rollback()
         res = [new.to_dict(body=True) for new in ls]
         self.write(json.dumps(res))
 
@@ -73,6 +87,10 @@ class DateRegionHandler(BaseHandler):
         logging.debug("d2=%r" % d2)
         q = New.query.filter(New.date >= d1, New.date <= d2)
         news = q.order_by('id desc')  # order by id
+        try:
+            db.ses.commit()
+        except:
+            db.ses.rollback()
         res = [new.to_dict(body=True) for new in news]
         self.write(json.dumps(res))
 
@@ -85,8 +103,10 @@ class QueryById(BaseHandler):
         '''
         try:
             new = New.query.filter(New.id == id).one()
+            db.ses.commit()
             self.write(new.to_json(body=True))
         except:
+            db.ses.rollback()
             self.write("")
 
 
@@ -99,6 +119,10 @@ class QueryByDate(BaseHandler):
         logging.debug('query date string = %r' % date_str)
         date = datetime.date(*[int(x) for x in date_str.split('-')])
         news = New.query.filter(New.date == date)
+        try:
+            db.ses.commit()
+        except:
+            db.ses.rollback()
         news_dict = [new.to_dict(body=True) for new in news]
         self.write(json.dumps(news_dict))
 
@@ -124,12 +148,20 @@ class TestSearchHandler(BaseHandler):
 class NewsListHandler(BaseHandler):
     def get(self):
         news = New.query.order_by('id desc')
+        try:
+            db.ses.commit()
+        except:
+            db.ses.rollback()
         self.render("news_list.html", news=news)
 
 
 class DetailHanlder(BaseHandler):
     def get(self, id):
         new = New.query.filter(New.id == id).one()
+        try:
+            db.ses.commit()
+        except:
+            db.ses.rollback()
         self.render("detail.html", new=new)
 
 
