@@ -7,25 +7,29 @@
   <title>{% block title %} TestPage {% end %}</title>
   <script type="text/javascript" charset="utf-8" src={{ static_url("script/jquery-1.8.0.min.js") }}></script>
   <link type="text/css" rel="stylesheet" href={{ static_url("base.css") }}></link>
+  <link type="text/css" rel="stylesheet" href={{ static_url("index.css") }}></link>
 </head>
 <body>
-  <div id="body">
-    <div id="header">
-      {% block header %}
-      <h1>just for test</h1>
-      {% end %}
-    </div>
+    <div id="body">
+        <center>
+            <div id="header">
+                {% block header %}
+                <h1>just for test</h1>
+                {% end %}
+            </div>
 
-    <!-- search block -->
-    <form method='post' action='/test/search/'>
-      <input type="text" name="kw_list">
-      <button type='submit'>搜索学生周知</button>
-  </form>
-  <a href="/test/page/1">最新通知</a>
+            <!-- search block -->
+            <form method='post' action='/test/search/'>
+                <input type="text" name="kw_list">
+                <button type='submit'>搜索学生周知</button>
+            </form>
+            <a href="/">首页</a>
+            <a href="/test/page/1">最新通知</a>
+        </center>
 
 
-  <div id="content">
-      {% block content %}
+        <div id="content">
+            {% block content %}
 
       {% end %}
   </div>

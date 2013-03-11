@@ -3,6 +3,24 @@
 <h1>学生周知</h1>
 {% end %}
 {% block content %}
+
+<div>
+  <center>
+  <a href="/test/page/1">最新</a>
+  {% for i in prev_list %}
+  <a href="/test/page/{{ i }}" width="10px">{{ i }}</a>
+  {% end %}
+
+  <span style="color: red; width: 20px;">{{ pageno }}</span>
+
+  {% for i in next_list %}
+  <a href="/test/page/{{ i }}" width="10px">{{ i }}</a>
+  {% end %}
+  <a href="/test/page/999">最旧</a>
+  </center>
+</div>
+
+
 <table id="news_list">
   <thead>
     <tr>
@@ -23,14 +41,13 @@
       <th>{{ n.date }}</th>
       <th><a href="http://ssdut.dlut.edu.cn{{ n.source_link }}">{{ n.source }}</a></th>
       <th>{{ n.publisher }}</th>
-      <th>{{ n.sha1 }}</th>
+      <th>{{ n.sha1[:5] }}..</th>
     </tr>
   {% end %}
   </tbody>
 </table>
 <div>
   <center>
-    <p>分页</p>
   <a href="/test/page/1">最新</a>
   {% for i in prev_list %}
   <a href="/test/page/{{ i }}" width="10px">{{ i }}</a>

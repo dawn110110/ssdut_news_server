@@ -1,11 +1,33 @@
 {% extends "base.html" %}
 
-{% block content %}
-
+{% block title %}
 <h1> {% raw new.title %}</h1>
-<h2>publisher: {{ new.publisher }}</h2>
-<h2>{{ new.date }}</h2>
-<h2>source: {{ new.source }}</h2>
-<h2>origin link: <a href="http://ssdut.dlut.edu.cn{{ new.link }}">{{ new.link }}</a></h2>
+{% end %}
+
+{% block header %}
+{% end %}
+
+{% block content %}
+<h1> {% raw new.title %}</h1>
+<table>
+    <thead>
+        <tr>
+            <th>发表人</th>
+            <th>日期</th>
+            <th>来源</th>
+            <th>原始链接</th>
+            <th>sha1</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <th>{{ new.publisher }}</th>
+            <th>{{ new.date }}</th>
+            <th><a href="http://ssdut.dlut.edu.cn{{ new.source_link }}">{{ new.source }}</a></th>
+            <th><a href="http://ssdut.dlut.edu.cn{{ new.link }}">{{ new.link }}</a></th>
+            <th>{{ new.sha1 }}</th>
+        </tr>
+    </tbody>
+</table>
 <div>{% raw new.body %}</div>
 {% end %}
