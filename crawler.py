@@ -12,7 +12,7 @@ import time
 import logging
 from urllib2 import urlopen
 import string
-
+from renren import RenRen
 SITE_URL = 'http://ssdut.dlut.edu.cn'
 
 
@@ -22,6 +22,8 @@ class SSdutSiteCrawler(object):
         self._news_url_template = string.Template(
             SITE_URL+"/index.php/News/student/p/$p/")
         self._init_going = False
+        self.renren = RenRen()
+        self.renren.login(config.renren_email, config.renren_pw)  # login
 
     def page_url(self, p):
         url = self._news_url_template.substitute(p=p)
@@ -80,6 +82,15 @@ class SSdutSiteCrawler(object):
                 except:
                     db.ses.rollback()
                     logging.error("session commit error, when add %r" % r)
+
+                # post to renren
+                self.renren.postStatus(
+                    detail.title+
+                    ' - '+
+                    detail.publisher+
+                    ' '+
+                    'http://ssdut.dlut.edu.cn'+
+                    new['link'])
                 news_id -= 1
         else:
             pass
