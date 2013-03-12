@@ -41,6 +41,7 @@ class SSdutSiteCrawler(object):
         print self.post_queue
 
     def do_one_post_in_q(self):
+        self.renren.visit(514178406)
         try:
             id = heapq.heappop(self.post_queue)
         except IndexError:  # empty queue
