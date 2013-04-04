@@ -3,6 +3,7 @@
 
 import sys
 import re
+import time
 from utils import re_compile  # copy from web.utils, in memory of Aaron Swartz
 import os
 import json
@@ -55,14 +56,10 @@ class LatestHandler(BaseHandler):
         max_id = db.ses.query(func.max(New.id)).one()[0]
 
         new = New.query.filter(New.id == max_id).one()
-<<<<<<< HEAD
         try:
             db.ses.commit()
         except:
             db.ses.rollback()
-=======
-
->>>>>>> a4e58d08e8a258a15ae4123b41e7de6982265c03
         self.write(new.to_json())
 
 
@@ -160,8 +157,6 @@ class NewsListHandler(BaseHandler):
             db.ses.rollback()
         self.render("news_list.html", news=news)
 
-<<<<<<< HEAD
-
 class DetailHanlder(BaseHandler):
     def get(self, id):
         new = New.query.filter(New.id == id).one()
@@ -242,21 +237,26 @@ class PageHandler(BaseHandler):
             max_pageno=max_pageno,
             pageno=pageno)
 
-
-=======
-class rssFeed(BaseHandler):
+class RssFeed(BaseHandler):
     def get(self):
-        news=New.query.order_by('id desc limit 0,15')
-        import time
-        lastUpdateData=time.strftime('%a, %d %b %Y %H:%M:%S',time.localtime(time.time()))
-        self.render("rss.xml",news=news,lastUpdateData=lastUpdateData)
->>>>>>> a4e58d08e8a258a15ae4123b41e7de6982265c03
+        news = New.query.order_by('id desc limit 0,15')
+        try:
+            db.ses.commit()
+        except:
+            db.ses.rollback()
+            self.write("Server Error")
+            return
+        lastUpdateData = time.strftime('%a, %d %b %Y %H:%M:%S',
+                                       time.localtime(time.time()))
+        self.render("rss.xml", news=news, lastUpdateData=lastUpdateData)
+
 settings = {
     "debug": True,
     "static_path": os.path.join(os.path.dirname(__file__), 'static'),
     "template_path": os.path.join(os.path.dirname(__file__), 'templates'),
     "cookie_secret": "61eJJFuYh7EQnp2XdTP1o/VooETzKXQAGaYdkL5gEmG=",
 }
+
 url_map = [
     (r'/$', IndexHandler),
     (r'/news_list', NewsListHandler),
@@ -275,7 +275,7 @@ url_map = [
 
     (r'/search/(.+)', SearchHandler),
     (r'/search', SearchHandler),  # for post
-    (r'/feed',rssFeed),
+    (r'/feed',RssFeed),
     (r'/static/(.*)',
         tornado.web.StaticFileHandler,
         dict(path=settings['static_path'])),
