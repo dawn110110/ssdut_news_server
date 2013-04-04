@@ -250,6 +250,12 @@ class RssFeed(BaseHandler):
                                        time.localtime(time.time()))
         self.render("rss.xml", news=news, lastUpdateData=lastUpdateData)
 
+
+class AttachHandler(BaseHandler):
+    def get(self, rest_url):
+        self.redirect("http://ssdut.dlut.edu.cn/Attachments" + rest_url)
+
+
 settings = {
     "debug": True,
     "static_path": os.path.join(os.path.dirname(__file__), 'static'),
@@ -263,6 +269,7 @@ url_map = [
     (r'/test/detail/(\d+)', DetailHanlder),
     (r'/test/search/', TestSearchHandler),
     (r'/test/page/(\d+)', PageHandler),
+    (r'/Attachments(.+)', AttachHandler),
 
     (r'/latest$', LatestHandler),
 

@@ -1,29 +1,25 @@
 <rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:wfw="http://wellformedweb.org/CommentAPI/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:sy="http://purl.org/rss/1.0/modules/syndication/" xmlns:slash="http://purl.org/rss/1.0/modules/slash/">
-    <channel>
-        <!--<title>DotNetBips.com Latest Articles</title>-->
-        <title>ssdut student news</title>
-        <atom:link href="http://ssdut.dlut.edu.cn/index.php/News/student/" rel="self" type="application/rss+xml"/>
-        <link>http://ssdut.dlut.edu.cn/index.php/News/student/</link>
-        <description>ssdut student news</description>
-        <lastBuildDate>{{escape(lastUpdateData)}}</lastBuildDate>
-        <language>zh-cn</language>
-        <sy:updatePeriod>hourly</sy:updatePeriod>
-        <sy:updateFrequency>1</sy:updateFrequency>
-        <copyright>Copyright (C) DotNetBips.com. All rights reserved.</copyright>
+	<channel>
+		<title>软院学生周知</title>
+		<atom:link href="http://ssdut.dlut.edu.cn/index.php/News/student/" rel="self" type="application/rss+xml"/>
+		<link>http://ssdut.dlut.edu.cn/index.php/News/student/</link>
+		<description>ssdut student news</description>
+		<lastBuildDate>{{escape(lastUpdateData)}}</lastBuildDate>
+		<language>zh-cn</language>
+		<sy:updatePeriod>hourly</sy:updatePeriod>
+		<sy:updateFrequency>1</sy:updateFrequency>
+        <copyright>ng.orzdawn.com latest articles</copyright>
         <generator>RSS Generator</generator>
 
         {% for item in news %}
         <item>
             <title>{{item.title}}</title>
-            <link>{{item.source_link}}</link>
+			<link>http://ssdut.dlut.edu.cn{{item.source_link}}</link>
             <description>{{"".join(item.clean_body.split())}}</description>
             <author>{{item.publisher}}</author>
             <pubDate>{{item.date}}</pubDate>
             <content:encoded>{{item.body}}</content:encoded>
         </item>
         {% end %}
-
-
-
     </channel>
 </rss>
