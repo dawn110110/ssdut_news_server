@@ -13,6 +13,7 @@ import tornado.httpclient
 import tornado.options
 import logging
 import db
+
 from hashlib import sha1
 from models import *
 from sqlalchemy import func
@@ -52,11 +53,16 @@ class LatestHandler(BaseHandler):
         /latest
         '''
         max_id = db.ses.query(func.max(New.id)).one()[0]
+
         new = New.query.filter(New.id == max_id).one()
+<<<<<<< HEAD
         try:
             db.ses.commit()
         except:
             db.ses.rollback()
+=======
+
+>>>>>>> a4e58d08e8a258a15ae4123b41e7de6982265c03
         self.write(new.to_json())
 
 
@@ -154,6 +160,7 @@ class NewsListHandler(BaseHandler):
             db.ses.rollback()
         self.render("news_list.html", news=news)
 
+<<<<<<< HEAD
 
 class DetailHanlder(BaseHandler):
     def get(self, id):
@@ -236,6 +243,14 @@ class PageHandler(BaseHandler):
             pageno=pageno)
 
 
+=======
+class rssFeed(BaseHandler):
+    def get(self):
+        news=New.query.order_by('id desc limit 0,15')
+        import time
+        lastUpdateData=time.strftime('%a, %d %b %Y %H:%M:%S',time.localtime(time.time()))
+        self.render("rss.xml",news=news,lastUpdateData=lastUpdateData)
+>>>>>>> a4e58d08e8a258a15ae4123b41e7de6982265c03
 settings = {
     "debug": True,
     "static_path": os.path.join(os.path.dirname(__file__), 'static'),
@@ -260,14 +275,13 @@ url_map = [
 
     (r'/search/(.+)', SearchHandler),
     (r'/search', SearchHandler),  # for post
-
+    (r'/feed',rssFeed),
     (r'/static/(.*)',
         tornado.web.StaticFileHandler,
         dict(path=settings['static_path'])),
 ]
 
 application = tornado.web.Application(url_map, **settings)
-
 
 def main():
     http_server = tornado.httpserver.HTTPServer(application)
