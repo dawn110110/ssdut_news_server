@@ -13,6 +13,7 @@ import tornado.httpclient
 import tornado.options
 import logging
 import db
+
 from hashlib import sha1
 from models import *
 from sqlalchemy import func
@@ -46,7 +47,9 @@ class LatestHandler(BaseHandler):
         /latest
         '''
         max_id = db.ses.query(func.max(New.id)).one()[0]
+
         new = New.query.filter(New.id == max_id).one()
+
         self.write(new.to_json())
 
 
@@ -126,7 +129,12 @@ class NewsListHandler(BaseHandler):
         news = New.query.order_by('id desc')
         self.render("news_list.html", news=news)
 
-
+class rssFeed(BaseHandler):
+    def get(self):
+        news=New.query.order_by('id desc limit 0,15')
+        import time
+        lastUpdateData=time.strftime('%a, %d %b %Y %H:%M:%S',time.localtime(time.time()))
+        self.render("rss.xml",news=news,lastUpdateData=lastUpdateData)
 settings = {
     "debug": True,
     "static_path": os.path.join(os.path.dirname(__file__), 'static'),
@@ -154,6 +162,8 @@ application = tornado.web.Application([
     (r'/static/(.*)',
         tornado.web.StaticFileHandler,
         dict(path=settings['static_path'])),
+    (r'/feed',rssFeed)
+    ,
 ], **settings)
 
 

@@ -130,11 +130,11 @@ if __name__ == "__main__":
 
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.DEBUG)
-    console_handler.setFormatter(TornadoFormatter(color=True))
+#    console_handler.setFormatter(TornadoFormatter(color=True))
 
     file_handler = logging.FileHandler('crawler.log')
     file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(TornadoFormatter(color=False))
+#    file_handler.setFormatter(TornadoFormatter(color=False))
 
     lg.addHandler(console_handler)
     lg.addHandler(file_handler)
