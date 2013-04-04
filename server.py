@@ -248,6 +248,7 @@ class RssFeed(BaseHandler):
             return
         lastUpdateData = time.strftime('%a, %d %b %Y %H:%M:%S',
                                        time.localtime(time.time()))
+        self.set_header("Content-Type", "text/xml; charset=UTF-8")
         self.render("rss.xml", news=news, lastUpdateData=lastUpdateData)
 
 
