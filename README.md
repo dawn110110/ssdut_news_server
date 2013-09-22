@@ -1,6 +1,6 @@
 download news from ssdut.dlut.edu.cn an format it
 ##大连理工大学软件学院学院新闻抓取、格式化服务。
-### http://ng.orzdawn.com （目测只有教育网能访问）
+### http://115.28.2.165:8000/
 
 
 本项目是对SSdut-News工具的拓展、完善。
