@@ -225,7 +225,8 @@ class PageHandler(BaseHandler):
         id_small = max(id_big - self.NEWS_PER_PAGE, min_id)
 
         q = New.query.filter(New.id >= id_small, New.id <= id_big)
-        news = q.order_by("id desc")
+        news = q.order_by("id desc");
+	logging.debug(news)
         prev_list = self.myrange(max(pageno-5, min_pageno), pageno-1)
         next_list = self.myrange(pageno+1, min(pageno+5, max_pageno))
 

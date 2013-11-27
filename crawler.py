@@ -65,32 +65,37 @@ class SSdutSiteCrawler(object):
             traceback.print_exc()
 
     def update_db(self, p=1):
-        # TODO  fix hole , update
         self.do_one_post_in_q()  # do one post
 
         db_max_id = db.ses.query(func.max(New.id)).one()[0]
+        db_max_record = New.query.filter(New.id==db_max_id).one()
+
         try:
             db.ses.commit()
         except:
             db.ses.rollback()
             db_max_id = 100000
+            logging.warn("get max db record faild")
+            return
 
         site_res = self.get_page_result(1)
 
-        logging.info("records on site = %r, max_id in db = %r" %
-                     (site_res.total_records, db_max_id))
+        logging.info("records on site = %r, max_id in db = %r, max_url_db = %r, max_url_site = %r" %
+                     (site_res.total_records, db_max_id, db_max_record.link, site_res.news_list[0]['link']))
         news_id = site_res.total_records
 
-        if db_max_id < site_res.total_records:
+        # id less than db , or link different
+        if db_max_id < site_res.total_records or db_max_record.link != site_res.news_list[0]['link']:
             n = site_res.total_records - db_max_id
-            logging.info("will update %r news" % n)
+            logging.info("max_record_on_site - max_id_in_db = %r" % n)
             # updte news here
             # assume that, n<=12
+            to_be_added_list = []
             for new in site_res.news_list:
-                if n <= 0:
-                    break
+                #if n <= 0:
+                #    break
                 n -= 1
-                print n
+                logging.info("n=%r, link=%r" % (n, new['link']))
                 # do update
                 try:
                     src = urlopen(SITE_URL + new['link']).read()
@@ -99,8 +104,31 @@ class SSdutSiteCrawler(object):
                     news_id -= 1
                     continue
                 detail = par.ssdut_news_parse(src)
+                
+                # if link encounter the same, break
+                
+                if new['link'] == db_max_record.link:
+                    logging.info("encounter same url, update db stop here, site_url = %r, db_max_url=%r" %(new['link'], db_max_record.link))
+                    break
+                else:
+                    logging.info("! a new url find, new_url = %r, db_max_url= %r" % (new['link'], db_max_record.link))
+                    to_be_added_list.append(new)
+            to_be_added_len = len(to_be_added_list)
+            logging.info("%r  records will be added" % to_be_added_len)
+
+            for new in to_be_added_list:
+
+                try:
+                    src = urlopen(SITE_URL + new['link']).read()
+                except:
+                    logging.error("urlopen() ERROR, link = %r" % new['link'])
+                    news_id -= 1
+                    continue
+                finally:
+                    to_be_added_len -= 1
+                detail = par.ssdut_news_parse(src)
                 r = New(
-                    id=news_id,
+                    id=to_be_added_len + db_max_id + 1,
                     raw=detail.raw,
                     title=detail.title,
                     link=new['link'],
@@ -112,7 +140,7 @@ class SSdutSiteCrawler(object):
                     source_link=new['source_link'],
                     sha1=detail.sha1,
                     search_text=detail.search_text)
-                logging.info("%r added to db, id = %r" % (r, r.id))
+                logging.info("%r added to db, id = %r, link = %r" % (r, r.id, r.link))
                 db.ses.add(r)
                 try:
                     db.ses.commit()
@@ -121,15 +149,16 @@ class SSdutSiteCrawler(object):
                     logging.error("session commit error, when add %r" % r)
 
                 #  add a post to queue
-                s = self.add_new_post_to_q(news_id)
-
-                news_id -= 1
+                s = self.add_new_post_to_q(r.id)
         else:
             pass
         logging.debug("update finish")
 
     def reset_news_db(self):
         ''' get the first 10 pages news and store them in db'''
+        logging.warn("reset_news_db called, but will have no effect")
+        return  # just return
+
         # delete all records in db
         for r in New.query.all():
             db.ses.delete(r)
