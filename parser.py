@@ -108,7 +108,7 @@ def ssdut_news_parse(raw):
 
     # raw page / hash
     result.raw = raw
-    result.sha1 = sha1(soup.text.encode("utf-8")).hexdigest()
+    result.page_sha1 = sha1(soup.text.encode("utf-8")).hexdigest()
     result.soup = soup
 
     # title
@@ -153,10 +153,19 @@ def ssdut_news_parse(raw):
     # use utf-8 encoding
     for k in ['title', 'source', 'body', 'clean_body', 'publisher']:
         result[k] = result[k].encode('utf-8')
+
+
+    hash_src = result.body + result.title + result.publisher
+    if isinstance(hash_src, str):
+        hash_src = unicode(hash_src, "utf-8", "ignore")
+    elif isinstance(hash_src, unicode):
+        pass
+    else:
+        pass
+    result.sha1 = sha1(hash_src.encode("utf-8")).hexdigest()
     result.search_text = ''.join([result.title, result.source,
                                   result.clean_body, result.publisher,
                                   result.sha1])
-
     return result
 
 

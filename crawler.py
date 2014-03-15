@@ -57,6 +57,8 @@ class SSdutSiteCrawler(object):
                 ' ',
                 'http://ssdut.dlut.edu.cn',
                 new.link])
+            if True:
+                s = s + " 想吐槽? -> http://210.30.97.149:2358/tucao/comm/%d" % int(new.id)
             self.renren.postStatus(s)
             logging.info("POST ON RENREN: %s" % s)
         except Exception, e:
@@ -104,14 +106,32 @@ class SSdutSiteCrawler(object):
                     news_id -= 1
                     continue
                 detail = par.ssdut_news_parse(src)
-                
+
                 # if link encounter the same, break
-                
+
                 if new['link'] == db_max_record.link:
-                    logging.info("encounter same url, update db stop here, site_url = %r, db_max_url=%r" %(new['link'], db_max_record.link))
+                    logging.info("encounter same url, update stop, site_url = %r, db_max_url=%r" %(new['link'], db_max_record.link))
+                    break
+                elif detail['title'] == db_max_record.title:
+                    logging.info("encounter same title, update stop, site_url = %r, db_max_url=%r, site_title=%r, db_title=%r" %(new['link'],
+                                                                                                                    db_max_record.link,
+                                                                                                                    detail['title'],
+                                                                                                                    db_max_record.title))
+                    break
+                elif detail['sha1'] == db_max_record.title:
+                    logging.info("encounter same sha1, update stop, site_url = %r, db_max_url=%r, site_sha1=%r, db_sha1=%r" %(new['link'],
+                                                                                                                    db_max_record.link,
+                                                                                                                    detail['sha1'],
+                                                                                                                    db_max_record.sha1))
+                    break
+                elif detail['body'] == db_max_record.body:
+                    logging.info("encounter same body, update stop, site_url = %r, db_max_url=%r, site_sha1=%r, db_sha1=%r" %(new['link'],
+                                                                                                                    db_max_record.link,
+                                                                                                                    detail['body'],
+                                                                                                                    db_max_record.body))
                     break
                 else:
-                    logging.info("! a new url find, new_url = %r, db_max_url= %r" % (new['link'], db_max_record.link))
+                    logging.info("! a new thread find, new_url = %r, db_max_url= %r" % (new['link'], db_max_record.link))
                     to_be_added_list.append(new)
             to_be_added_len = len(to_be_added_list)
             logging.info("%r  records will be added" % to_be_added_len)
@@ -211,11 +231,11 @@ if __name__ == "__main__":
 
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.DEBUG)
-#    console_handler.setFormatter(TornadoFormatter(color=True))
+    console_handler.setFormatter(TornadoFormatter(color=True))
 
     file_handler = logging.FileHandler('crawler.log')
     file_handler.setLevel(logging.DEBUG)
-#    file_handler.setFormatter(TornadoFormatter(color=False))
+    file_handler.setFormatter(TornadoFormatter(color=False))
 
     lg.addHandler(console_handler)
     lg.addHandler(file_handler)
