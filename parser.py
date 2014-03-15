@@ -108,7 +108,6 @@ def ssdut_news_parse(raw):
 
     # raw page / hash
     result.raw = raw
-    result.page_sha1 = sha1(soup.text.encode("utf-8")).hexdigest()
     result.soup = soup
 
     # title
